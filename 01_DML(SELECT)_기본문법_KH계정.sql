@@ -216,6 +216,7 @@ FROM EMPLOYEE;
  ---------------------------------------------------------------------------------------
  
  /*
+     /*
       <  BETWEEN AND 연산자 >
       몇 이상 몇 이하인 범위에 대한 조건을 제시할 수 있는 연산자
       
@@ -229,9 +230,214 @@ SELECT EMP_NAME, EMP_ID, SALARY, JOB_CODE
 FROM EMPLOYEE 
 WHERE SALARY BETWEEN 3500000 AND 6000000;
  
+ -- EMPLOYEE 테이블로부터 급여가 350만원 미만이고 600만원 초과인 사원들의 이름, 사번,급여, 직급코드 조회
+ SELECT  EMP_NAME, EMP_ID, SALARY, JOB_CODE
+ FROM EMPLOYEE
+ --WHERE SALARY < 3500000 OR  6000000 <SALARY ;
+ --WHERE NOT SALARY BETWEEN 3500000 AND 6000000; 
+ WHERE  SALARY  NOT BETWEEN 3500000 AND 6000000;
+ --> 오라클에서 NOT은 자바의 논리부정연산자인 ! 와 동일한 의미
+ 
+ -- ** BETWEEN AND 연산자는 DATE 형식간에서도 사용 가능
+ -- 입사일이 '90/01/01' ~ '03/01/01' 인 사원들의 모든 컬럼 조회
+ SELECT *
+ FROM EMPLOYEE
+ --WHERE HIRE_DATE >='90/01/01' AND  HIRE_DATE<= '03/01/01'; 
+ --날짜도 대소비교가 가능함(== 상한값, 하한값의 개념이 있다. BETWEEN AND 연산자를 사용 가능하다.)
+ WHERE HIRE_DATE BETWEEN '90/01/01' AND   '03/01/01';
+ 
+ --EMPLOYEE 테이블로부터 입사일이 '90/01/01' ~ '03/01/01' 아닌 사원들의 모든 컬럼 조회
+ SELECT *
+ FROM EMPLOYEE
+ WHERE NOT HIRE_DATE BETWEEN '90/01/01' AND   '03/01/01';
+ 
+ --------------------------------------------------------------------------------------------
+ 
+ /*
+      < Like '특정 패턴' > 
+      비교하려는 컬럼값이 내가 지정한 특정 패턴에 만족될 경우 조회 (검색기능)
+      
+      [ 표현법 ]
+      비교대상컬럼명 LIKE '특정패턴'
+      
+      - 특정 패턴을 제시할때 와일드카드인  ' %' , '_'를 가지고 제시할 수 있음
+      ' %'  :  0글자 이상
+      비교대상컬럼명 LIKE '문자%' => 컬럼값 중에 '문자'로 시작되는 것을 조회
+      비교대상컬럼명 LIKE '%문자' => 컬럼값 중에 '문자'로 끝나는 것을 조회
+      비교대상컬럼명 LIKE '%문자%' => 컬럼값 중에 '문자'가 포함되는 것을 조회
+      
+        '_'  :  딱 1글자 
+      비교대상컬럼명 LIKE '_문자' => 해당 컬럼값 중에 '문자' 앞에 무조건 1글자가 있을 경우 조회
+      비교대상컬럼명 LIKE '__문자'=> 해당 컬럼값 중에 '문자'앞에 무조건 2글자가 있을 경우 조회
+ */
+ 
+ --EMPLOYEE  테이블로부터 성이 전씨인 사원들의 이름, 급여, 입사일 조회
+ SELECT EMP_NAME, SALARY, HIRE_DATE
+ FROM EMPLOYEE
+ WHERE EMP_NAME LIKE'전%';
+ 
+  --EMPLOYEE  테이블로부터 이름중에 '하'가 포함된 사원들의 이름, 주민번호,부서코드 조회
+ SELECT EMP_NAME,EMP_NO,DEPT_CODE
+ FROM EMPLOYEE
+ WHERE EMP_NAME LIKE  '%하%' ;
+ 
+ --EMPLOYEE 테이블로부터 전화번호 4번째 자리가 9로 시작되는 사원들의 사번, 사원명, 전화번호, 이메일 조회
+ SELECT EMP_ID, EMP_NAME ,PHONE ,EMAIL
+ FROM EMPLOYEE
+ WHERE PHONE LIKE '___9%';
+ 
+ --EMPLOYEE 테이블로부터 이름 가운데글자가 '지'인 사원들의 모든 컬럼 (이름이 3글자인경우)
+ SELECT *
+ FROM EMPLOYEE
+ WHERE EMP_NAME LIKE '_지_';
+ 
+ -- 그 이외의 사원
+ SELECT *
+ FROM EMPLOYEE
+ --WHERE NOT EMP_NAME  LIKE  '_지_';
+ WHERE  EMP_NAME  NOT LIKE  '_지_';
+ 
+ ---------------실습 문제-----------------------
+ ---1. 이름이 '연'으로 끝나는 사원들의 이름, 입사일 조회
+ SELECT EMP_NAME, HIRE_DATE
+ FROM EMPLOYEE
+ --WHERE EMP_NAME LIKE '%연';
+ WHERE EMP_NAME LIKE '__연';
+ --이름이 모두 3글자라는 가정하에 언더바도 사용가능
+ 
+ ---2. 전화번호 처음 3글자가 010이 아닌 사원들의 이름, 전화번호를 조회
+ SELECT EMP_NAME, PHONE
+ FROM EMPLOYEE
+ WHERE NOT PHONE LIKE '010%';
+
+ ---3.DEPARTMENT  테이블로부터 해외영업과 관련된 부서들의 모든 컬럼들을 조회
+ SELECT *
+ FROM DEPARTMENT
+ WHERE DEPT_TITLE LIKE '%해외영업%';
+ 
+ ------------------------------------------------------------------------------
+ 
+ /*
+       < IS NULL>
+        NULL  인지 아닌지 판별
+        
+        [ 표현법 ]
+        비교대상컬럼  IS NULL ; 컬럼값이  NULL 인 경우를 조회하겠다.
+        비교대상컬럼 IS NOT NULL; 컬럼값이 NULL 이 아닌 경우를 조회하겠다.
+ 
+        주의사항 : 오라클에서 NULL  값과 동등비교할때에는 =  을 쓰지 않고 IS NULL을 쓴다.
+ */
+ 
+ SELECT *
+ FROM EMPLOYEE;
+ 
+ --보너스를 받지 않는 사원들의 사번, 이름, 급여, 보너스 
+ SELECT EMP_ID, EMP_NAME, SALARY, BONUS
+ FROM EMPLOYEE
+ WHERE BONUS IS NULL;
+ 
+ --보너스를 받는 사원들의 사번, 이름 , 급여, 보너스
+ SELECT EMP_ID, EMP_NAME,SALARY,BONUS
+ FROM EMPLOYEE
+ WHERE BONUS IS NOT NULL;
+ 
+ -- 사수가 없는 사원들의 사원명, 사수사번, 부서코드 조회
+ SELECT EMP_NAME,MANAGER_ID,DEPT_CODE
+ FROM EMPLOYEE
+ WHERE MANAGER_ID IS NULL;
+ 
+ -- 사수도 없고 부서배치도 받지 않은 사원들의 모든 컬럼을 조회
+ SELECT *
+ FROM EMPLOYEE
+ WHERE MANAGER_ID IS NULL AND DEPT_CODE IS NULL;
+ 
+ --부서 배치는 받지 않았지만 보너스는 받는 사원들의 사원명, 부서코드, 보너스 조회
+ SELECT EMP_NAME, DEPT_CODE, BONUS
+ FROM EMPLOYEE
+ WHERE DEPT_CODE IS NULL AND BONUS IS NOT NULL;
+ 
+ ----------------------------------------------------------------------------------------------
  
  
+ /*
+       <IN> 
+       비교 대상 컬럼 값에 내가 제시한 목록들 중에서 일치하는값이 하나라도 있는지 체크 
+            (동등비교 , OR 와 비슷하다 )
+      [ 표현법 ]
+      비교대상컬럼 IN (값1, 값2 , 값3, ...)
  
+ */
+ 
+ -- 부서코드가 D6이거나 또는 D8이거나 또는 D5인 사원들의 이름, 부서코드, 급여 조회
+ SELECT EMP_NAME, DEPT_CODE, SALARY
+ FROM EMPLOYEE
+-- WHERE DEPT_CODE = 'D6' OR DEPT_CODE='D8' OR DEPT_CODE = 'D5';
+ WHERE DEPT_CODE IN ('D6',  'D8',  'D5');
+ 
+ -- 그 이외의 사원들
+ SELECT EMP_NAME, DEPT_CODE, SALARY
+ FROM EMPLOYEE
+ WHERE  DEPT_CODE  NOT IN ('D6',  'D8',  'D5');
+ 
+ --------------------------------------------------------------------------------------
+ 
+ /*
+         <  연결 연산자  || >
+         여러 컬럼값을 마치 하나의 컬럼인듯 연결시켜주는 연산자 
+         컬럼과 리터럴 ( 임의의 문자열 ) 을 연결할 수 있음
+         (+를 대체한다. )
+        자바에서 
+        문자열  + 문자열 = 합쳐진 문자열 
+        문자열  + 숫자  = 합쳐진 문자열 
+ */
+ 
+ SELECT EMP_ID  ||  EMP_NAME || SALARY AS "연결됨"
+ FROM EMPLOYEE;
+ 
+ -- XX번 XXX의 월급은 XXXX 원 입니다. 형식으로 출력
+ SELECT EMP_ID || ' 번  ' ||EMP_NAME || '의 월급은 ' || SALARY || '원 입니다.' AS "급여정보"
+ FROM EMPLOYEE;
+ 
+ /*
+ 
+       <  연산자 우선순위  >
+       0.   ()  : 우선순위를 높여주는 역할
+       1.  산술연산자 : 수학 산술연산을 해줌
+       2.  연결연산자 : 컬럼과 리터럴값 또는 컬럼과  컬럼값을 연결해줌
+       3.  비교연산자 : 대소비교 또는 동등비교 해줌
+      ( 4.  IS NULL, IS NOT NULL : NULL  값인지 아닌지 판단해줌
+       5.  LIKE : 패턴을 제시해서 패턴에 부합하는지 판별
+       6.  IN : 제시한 목록중 하나라도 일치하는게 있는지 판별 (동등비교 + OR 연산)  ) => 4, 5, 6  은 같은 우선순위이다. 
+       7.  BETWEEN AND : 특정 범위에 해당되는지 체크 (하한값 <= 비교대상 <= 상한값)
+       8.  NOT : 조건을 반전시키는 역할 
+       9.  AND : 조건을 "그리고" 라는 키워드로 연결
+       10. OR  : 조건을 "또는" 이라는 키워드로 연결
+ 
+ */
+ 
+ ------------------------------------------------------------------------------------------------
+ 
+ /*
+     < ORDER BY 절 >
+     SELECT문 가장 마지막에 기입하는 구문 뿐만 아니라 실행 순서 또한 가장 마지막
+     조회된 데이터들을 정렬해주는 역할 ( 오름차순인지 내림차순인지  / 무엇을 기준으로 정렬한건지 )
+     오름차순ASC -> 작은것부터 큰거   /내림차순DESC-> 큰거부터 작은거 
+     
+     [ 표현법 ]
+     SELECT 조회할 컬럼명1, 컬럼명2 , ...
+     FROM  테이블명
+     WHERE  조건식
+     ORDER BY [정렬기준으로세우고자하는컬럼명/별칭/컬럼순번]  [ASC/DESC] ~~~ ;
+     
+     
+     
+     
+     => WEHRE절, ORDER BY 절은 생략 가능 
+     
+ */
+ 
+ 
+  
  
  
  
