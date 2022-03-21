@@ -111,26 +111,41 @@ FROM EMPLOYEE;
 
  SELECT EMP_NAME 직원명, DEPT_CODE 부서코드 
                  , SUBSTR(EMP_NO,1,2) ||' 년'  || SUBSTR(EMP_NO,3,2) || '월' || SUBSTR(EMP_NO,5,2)|| '일'  "생년월일"
-                 ,TO_CHAR( EMP_NO, 'YYYY-MM-DD') --다시 하기
+                 ,EXTRACT(YEAR FROM SYSDATE)- TO_NUMBER(SUBSTR(EMP_NO,1,2)+1900) || '세' "나이"
 FROM EMPLOYEE;                 
    
 --22. EMPLOYEE테이블에서 부서코드가 D5, D6, D9인 사원만 조회하되 D5면  총무부
   -- , D6면  기획부, D9면 영업부로 처리 (단, 부서코드 오름차순으로 정렬)    
-  SELECT   EMP_NAME "사원이름" ,   DEPT_CODE 
+  SELECT   EMP_NAME "사원이름" 
+               ,DECODE( DEPT_CODE, 'D5','총무부', 'D6','기획부', 'D9','영업부') "부서코드" 
   FROM  EMPLOYEE
-  WHERE DEPT_CODE IN  ('D5', 'D6', 'D9')  -- 어떻게 이름을 같다고 하지? 안배움
+  WHERE DEPT_CODE IN  ('D5', 'D6', 'D9')  
   ORDER BY "부서코드" ASC;
   
   --23.EMPLOYEE테이블에서 사번이 201번인 사원명, 
   --주민번호 앞자리, 주민번호 뒷자리, 주민번호 앞자리와 뒷자리의 합  조회
-    
-  
+   SELECT EMP_NAME 사원명, SUBSTR(EMP_NO,1,6) 주민번호앞자리 ,SUBSTR(EMP_NO,8)  주민번호뒷자리
+               ,TO_NUMBER(SUBSTR(EMP_NO,1,6)+SUBSTR(EMP_NO,8) ) 주민번호자리합
+   FROM EMPLOYEE
+   WHERE EMP_ID = 201;
+
  --24. EMPLOYEE테이블에서 부서코드가  D5인  직원의  보너스  포함  연봉  합  조회
- 
+ SELECT DEPT_CODE 부서코드, SUM(SALARY+(SALARY*BONUS)) 연봉합  
+ FROM EMPLOYEE
+ GROUP BY DEPT_CODE
+ HAVING DEPT_CODE = 'D5';
  
  --25.EMPLOYEE테이블에서 직원들의 입사일로부터 년도만 가지고    
  -- 각  년도별  입사 인원수 조회, 전체 직원 수, 2001년, 2002년, 2003년, 2004년
-    
+ -- TO_CHAR, DECODE, SUM  사용
+ --전체직원수 2001년 2002년 2003년 2004년
+SELECT COUNT(*) 전체직원수,
+          SUM(DECODE(TO_CHAR(HIRE_DATE, 'YYYY'), 2001,1,0)) "2001년",
+          SUM(DECODE(TO_CHAR(HIRE_DATE, 'YYYY'), 2002,1,0)) "2002년",
+          SUM(DECODE(TO_CHAR(HIRE_DATE, 'YYYY'), 2003,1,0)) "2003년",
+          SUM(DECODE(TO_CHAR(HIRE_DATE, 'YYYY'), 2004,1,0)) "2004년"
+FROM EMPLOYEE;
+
                 
 
 
