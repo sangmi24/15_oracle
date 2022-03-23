@@ -345,12 +345,224 @@ SELECT * FROM EMPLOYEE E;  -- 사원에 대한 정보를 조회할 때 E라는 테이블
 SELECT * FROM EMPLOYEE M; -- 사수에 대한 정보를 조회할 때 M이라는 테이블
 
 -- 자체조인 연습
+-- 사원의 사번, 사원명, 부서코드, 급여 (E로부터)
+-- 사수의 사번, 사수명, 부서코드, 급여 (M으로부터)
+-->> 오라클 전용 구문
+SELECT E.EMP_ID "사원의 사번" , E.EMP_NAME "사원명",E.DEPT_CODE "부서코드", E.SALARY"급여"
+           , M.EMP_ID"사수의 사번", M.EMP_NAME "사수명",M.DEPT_CODE "부서코드", M.SALARY "급여"
+FROM EMPLOYEE E, EMPLOYEE M
+WHERE   E.MANAGER_ID = M.EMP_ID(+)  ;--연결고리에대한조건  (기준이 E테이블이라서)-> 포괄조인
+
+-->> ANSI 구문
+SELECT E.EMP_ID "사원의 사번" , E.EMP_NAME "사원명",E.DEPT_CODE "부서코드", E.SALARY"급여"
+           , M.EMP_ID"사수의 사번", M.EMP_NAME "사수명",M.DEPT_CODE "부서코드", M.SALARY "급여"
+FROM EMPLOYEE E
+LEFT JOIN EMPLOYEE M  ON ( E.MANAGER_ID = M.EMP_ID  )  ; --조건  (사원.사수의사번 = 사수.사번 ) -> 포괄조인이라서 LEFT 추가 기준을 왼쪽!(사원)
+
+--컬럼 추가 연습
+-- 사원의 사번, 사원명, 부서코드, 부서명, 급여  (E로부터)
+-- 사수의 사번, 사수명, 부서코드, 부서명, 급여  (M으로부터)
+--  총 4개의 테이블이 나옴 (EMPLOYEE E M, DEPARTMENT D1 D2) 
+SELECT E.EMP_ID "사원의 사번" , E.EMP_NAME "사원명",  E.DEPT_CODE "부서코드", D1.DEPT_TITLE "사원 부서명",  E.SALARY"급여"
+         , M.EMP_ID"사수의 사번", M.EMP_NAME "사수명",  M.DEPT_CODE "부서코드", D2.DEPT_TITLE "사수 부서명", M.SALARY "급여"
+FROM EMPLOYEE E 
+LEFT JOIN EMPLOYEE M ON (E.MANAGER_ID = M.EMP_ID)
+LEFT JOIN  DEPARTMENT D1 ON (E.DEPT_CODE=D1.DEPT_ID) --사원의테이블 D1
+LEFT JOIN  DEPARTMENT D2 ON (M.DEPT_CODE=D2.DEPT_ID)  ; --사수의테이블 D2 LEFT조인 해줘야 사원들이 다 나온다. 
+
+----------------------------------------------------------------------------------------------------------------------
+
+/*
+     <  다중 JOIN >
+     3개 이상의 테이블을 조인하는 것
+*/
+-- 사번, 사원명, 부서명, 직급명, 지역명 (LOCAL_NAME)
+--EMP_ID,  EMP_NAME, DEPT_TITLE, JOB_NAME, LOCAL_NAME
+SELECT  * FROM EMPLOYEE;      -- DEPT_CODE,  JOB_CODE                      --연결고리 
+SELECT * FROM DEPARTMENT;   -- DEPT_ID ,                      LOCATION_ID
+SELECT * FROM JOB;                 --                   JOB_CODE
+SELECT * FROM LOCATION;       --                                    LOCAL_CODE
+
+-->>  오라클 전용 구문
+SELECT EMP_ID "사번",  EMP_NAME "사원명"  , DEPT_TITLE "부서명" , JOB_NAME  "직급명", LOCAL_NAME "근무지역명"
+FROM EMPLOYEE E, DEPARTMENT D, JOB J, LOCATION L
+WHERE    E.DEPT_CODE= D.DEPT_ID (+)               --E테이블에 DEPT_CODE은  NULL 값이 존재한다.
+    AND    E.JOB_CODE=J.JOB_CODE  (+)              --일치하는것을 다 찾았는데 마침 다 일치해서 23명이 나온것=>등가조인 (LEFT조인안해도 된다. 편의상 LEFT조인)
+    AND    D.LOCATION_ID = L.LOCAL_CODE(+)  ;   --E와 D를  LEFT조인으로 된 상태에서  D 와 L을 조인하면 덜 나옴=>LEFT조인으로 바꿈
+    --연결고리에 대한 조건 => LEFT 조인으로 바꾼다.
+
+-->> ANSI 구문 
+SELECT EMP_ID "사번",  EMP_NAME "사원명"  , DEPT_TITLE "부서명" , JOB_NAME  "직급명", LOCAL_NAME "근무지역명"
+FROM EMPLOYEE E
+LEFT JOIN DEPARTMENT D ON( E.DEPT_CODE=D.DEPT_ID) 
+LEFT JOIN JOB J USING ( JOB_CODE )                 --ON( E.JOB_CODE=J.JOB_CODE ) 포괄조인에서도 USING 가능! , INNER조인도 가능하다. (편의상 LEFT조인) 
+LEFT JOIN LOCATION L ON(D.LOCATION_ID = L.LOCAL_CODE); 
+--DEPARTMENT테이블을 기준으로 조인이 되기 때문에 DEPARTMENT 테이블 조인문 이후에 작성!
+-- >> ANSI 구문으로 다중조인을 작성할 경우에는 JOIN의 순서가 중요하다.
+-- (LOCATION 테이블이 DEPARTMENT테이블보다 먼저 조인되면 오류 발생)
+
+--사번, 사원명, 부서명, 직급명, 근무지역명, 근무국가명, 급여등급 (SAL_GRADE 테이블로부터)
+--EMP_ID,  EMP_NAME, DEPT_TITLE, JOB_NAME, LOCAL_NAME, NATIONAL_NAME, SAL_LEVEL
+SELECT  * FROM EMPLOYEE;      -- DEPT_CODE,  JOB_CODE                                                         SALARY         --연결고리 
+SELECT * FROM DEPARTMENT;   -- DEPT_ID ,                      LOCATION_ID
+SELECT * FROM JOB;                 --                   JOB_CODE
+SELECT * FROM LOCATION;       --                                    LOCAL_CODE       NATIONAL_CODE
+SELECT * FROM NATIONAL;       --                                                             NATIONAL_CODE
+SELECT * FROM SAL_GRADE;      --                                                                                             MIN_SAL/MAX_SAL  
+
+--DEPT_CODE(기준) =DEPT_ID
+--JOB_CODE(기준)=JOB_CODE
+--LOCATION_ID(기준)=LOCAL_CODE   => 부서테이블 조인 뒤에 작성
+--NATIONAL_CODE(기준)=NATIONAL_CODE
+--SALARY BETWEEN MIN_SAL AND MAX_SAL  (비등가조인)
+
+-->> ANSI 구문
+SELECT E.EMP_ID "사번"
+           , E.EMP_NAME "사원명"
+           , D.DEPT_TITLE "부서명"
+           , J.JOB_NAME "직급명"
+           , L. LOCAL_NAME "근무지역명"
+           , N. NATIONAL_NAME "근무국가명"
+           , S. SAL_LEVEL"급여등급"
+FROM EMPLOYEE E
+LEFT JOIN DEPARTMENT D ON (E.DEPT_CODE =D.DEPT_ID)
+LEFT JOIN JOB J ON (E.JOB_CODE=J.JOB_CODE)
+LEFT JOIN LOCATION L ON (D.LOCATION_ID=L.LOCAL_CODE)
+LEFT JOIN NATIONAL N ON(L.NATIONAL_CODE=N.NATIONAL_CODE)  --순서 주의!
+       JOIN SAL_GRADE S ON (E.SALARY BETWEEN S.MIN_SAL AND S.MAX_SAL);
+
+---------------------- JOIN 종합 실습문제 ----------------------
+-- 1. 직급이 대리이면서 ASIA 지역에 근무하는 직원들의
+--    사번, 사원명, 직급명, 부서명, 근무지역명, 급여를 조회하시오
+-->> 오라클 전용 구문
+
+SELECT E.EMP_ID "사번"
+           ,E.EMP_NAME "사원명"
+           ,J.JOB_NAME "직급명"
+           ,D.DEPT_TITLE "부서명"
+           ,L.LOCAL_NAME "근무지역명"
+           ,E.SALARY "급여"
+FROM EMPLOYEE E, DEPARTMENT D, JOB J, LOCATION L
+WHERE  E.JOB_CODE=J.JOB_CODE --연결고리명 직급명
+AND E.DEPT_CODE=D.DEPT_ID   --부서명
+AND D.LOCATION_ID=L.LOCAL_CODE--근무지역명
+AND J.JOB_NAME= '대리' AND L.LOCAL_NAME LIKE 'ASIA%';
+
+-->> ANSI 구문
+SELECT E.EMP_ID "사번"
+           , E.EMP_NAME "사원명"
+           , J.JOB_NAME "직급명"
+           , D.DEPT_TITLE "부서명"
+           , L.LOCAL_NAME "근무지역명"
+           , E.SALARY "급여"
+FROM EMPLOYEE E
+LEFT JOIN JOB J ON (E.JOB_CODE=J.JOB_CODE)
+LEFT JOIN DEPARTMENT D ON (E.DEPT_CODE=D.DEPT_ID)
+LEFT JOIN LOCATION L ON (D.LOCATION_ID=L.LOCAL_CODE)
+WHERE J.JOB_NAME = '대리' AND L.LOCAL_NAME LIKE 'ASIA%';  --순서 주의!
+ 
+-- 2. 70년대생이면서 여자이고, 성이 전씨인 직원들의
+--   사원명, 주민번호, 부서명, 직급명을 조회하시오
+-->> 오라클 전용 구문
+SELECT  E.EMP_NAME "사원명"
+           , E.EMP_NO "주민번호"
+           , D.DEPT_TITLE "부서명"
+           , J.JOB_NAME "직급명"
+FROM EMPLOYEE E, DEPARTMENT D, JOB J
+WHERE  E.DEPT_CODE=D.DEPT_ID   --연결고리 --부서명  
+AND     E.JOB_CODE=J.JOB_CODE  --직급코드 
+AND E.EMP_NO LIKE  '7%'  AND SUBSTR(E.EMP_NO,8,1)='2'
+AND E.EMP_NAME LIKE '전%' ;
+-->> ANSI 구문
+SELECT  E.EMP_NAME "사원명"
+           , E.EMP_NO "주민번호"
+           , D.DEPT_TITLE "부서명"
+           , J.JOB_NAME "직급명"
+FROM EMPLOYEE E
+LEFT JOIN DEPARTMENT D ON (E.DEPT_CODE=D.DEPT_ID )--연결고리
+LEFT JOIN JOB J ON(E.JOB_CODE=J.JOB_CODE)
+WHERE E.EMP_NO LIKE  '7%'  AND SUBSTR(E.EMP_NO,8,1)='2'
+AND E.EMP_NAME LIKE '전%' ;
+
+-- 3. 이름에 '형'자가 들어있는 직원들의 
+--    사번, 사원명, 직급명을 조회하시오
+-->> 오라클 전용 구문
+SELECT E.EMP_ID "사번"
+           ,E.EMP_NAME "사원명"
+           , J.JOB_NAME "직급명"
+FROM EMPLOYEE E, JOB J
+WHERE  E.JOB_CODE=J.JOB_CODE  --연결고리
+AND E.EMP_NAME LIKE '%형%';
+-->> ANSI 구문
+SELECT E.EMP_ID "사번"
+           ,E.EMP_NAME "사원명"
+           , J.JOB_NAME "직급명"
+FROM EMPLOYEE E
+LEFT JOIN JOB J ON( E.JOB_CODE=J.JOB_CODE )
+WHERE  E.EMP_NAME LIKE '%형%';
+
+-- 4. 해외영업팀에 근무하는 직원들의
+--    사원명, 직급명, 부서코드, 부서명을 조회하시오
+-->> 오라클 전용 구문
+SELECT  E.EMP_NAME "사원명"
+           , J.JOB_NAME "직급명"
+           , E.DEPT_CODE "부서코드"
+           , D.DEPT_TITLE "부서명"
+FROM EMPLOYEE E , JOB J, DEPARTMENT D
+WHERE E.JOB_CODE=J.JOB_CODE  --연결고리
+   AND  E.DEPT_CODE=D.DEPT_ID
+   AND D.DEPT_TITLE LIKE '해외영업%'; 
+-->> ANSI 구문
+SELECT  E.EMP_NAME "사원명"
+           , J.JOB_NAME "직급명"
+           , E.DEPT_CODE "부서코드"
+           , D.DEPT_TITLE "부서명"
+FROM  EMPLOYEE E 
+LEFT JOIN JOB J USING(JOB_CODE )
+LEFT JOIN DEPARTMENT D ON(  E.DEPT_CODE=D.DEPT_ID)
+WHERE D.DEPT_TITLE LIKE '해외영업%'; 
+
+-- 5. 보너스를 받는 직원들의
+--    사원명, 보너스, 연봉, 부서명, 근무지역명을 조회하시오
+-->> 오라클 전용 구문
+SELECT  E.EMP_NAME "사원명"
+           , E.BONUS "보너스"
+           , E.SALARY+(E.SALARY*E.BONUS) "연봉"
+           , D.DEPT_TITLE "부서명"
+           , L.LOCAL_NAME "근무지역명"
+FROM EMPLOYEE E, DEPARTMENT D, LOCATION L
+WHERE  E.DEPT_CODE=D.DEPT_ID  --연결고리
+AND    D.LOCATION_ID=L.LOCAL_CODE;
 
 
 
-
-
-
-
+-->> ANSI 구문
+-- 6. 부서가 있는 직원들의
+--    사원명, 직급명, 부서명, 근무지역명을 조회하시오
+-->> 오라클 전용 구문
+-->> ANSI 구문
+-- 7. '한국' 과 '일본' 에 근무하는 직원들의
+--    사원명, 부서명, 근무지역명, 근무국가명을 조회하시오
+-->> 오라클 전용 구문
+-->> ANSI 구문
+-- 8. 보너스를 받지 않는 직원들 중 직급코드가 J4 또는 J7 인 직원들의
+--    사원명, 직급명, 급여를 조회하시오
+-->> 오라클 전용 구문
+-->> ANSI 구문
+-- 9. 사번, 사원명, 직급명, 급여등급, 구분을 조회하는데
+--    이 때, 구분에 해당하는 값은
+--    급여등급이 S1, S2 인 경우 '고급'
+--    급여등급이 S3, S24 인 경우 '중급'
+--    급여등급이 S5, S6 인 경우 '초급' 으로 조회되게 하시오
+-->> 오라클 전용 구문
+-->> ANSI 구문
+-- 10. 각 부서별 총 급여합을 조회하되
+--     이 때, 총 급여합이 1000만원 이상인 부서명, 급여합을 조회하시오
+-->> 오라클 전용 구문
+-->> ANSI 구문
+-- 11. 각 부서별 평균급여를 조회하여 부서명, 평균급여 (정수처리) 로 조회하시오
+--     단, 부서배치가 안된 사원들의 평균도 같이 나오게끔 하시오
+--> 오라클 전용 구문
+-->> ANSI 구문
 
 
