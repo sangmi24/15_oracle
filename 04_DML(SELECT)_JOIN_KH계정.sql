@@ -444,8 +444,8 @@ SELECT E.EMP_ID "사번"
            ,E.SALARY "급여"
 FROM EMPLOYEE E, DEPARTMENT D, JOB J, LOCATION L
 WHERE  E.JOB_CODE=J.JOB_CODE --연결고리명 직급명
-AND E.DEPT_CODE=D.DEPT_ID   --부서명
-AND D.LOCATION_ID=L.LOCAL_CODE--근무지역명
+AND E.DEPT_CODE=D.DEPT_ID (+)   --부서명
+AND D.LOCATION_ID=L.LOCAL_CODE (+)--근무지역명
 AND J.JOB_NAME= '대리' AND L.LOCAL_NAME LIKE 'ASIA%';
 
 -->> ANSI 구문
@@ -469,8 +469,8 @@ SELECT  E.EMP_NAME "사원명"
            , D.DEPT_TITLE "부서명"
            , J.JOB_NAME "직급명"
 FROM EMPLOYEE E, DEPARTMENT D, JOB J
-WHERE  E.DEPT_CODE=D.DEPT_ID   --연결고리 --부서명  
-AND     E.JOB_CODE=J.JOB_CODE  --직급코드 
+WHERE  E.DEPT_CODE=D.DEPT_ID (+)   --연결고리 --부서명  
+AND     E.JOB_CODE=J.JOB_CODE   --직급코드 
 AND E.EMP_NO LIKE  '7%'  AND SUBSTR(E.EMP_NO,8,1)='2'
 AND E.EMP_NAME LIKE '전%' ;
 -->> ANSI 구문
@@ -510,7 +510,7 @@ SELECT  E.EMP_NAME "사원명"
            , D.DEPT_TITLE "부서명"
 FROM EMPLOYEE E , JOB J, DEPARTMENT D
 WHERE E.JOB_CODE=J.JOB_CODE  --연결고리
-   AND  E.DEPT_CODE=D.DEPT_ID
+   AND  E.DEPT_CODE=D.DEPT_ID (+)
    AND D.DEPT_TITLE LIKE '해외영업%'; 
 -->> ANSI 구문
 SELECT  E.EMP_NAME "사원명"
@@ -527,39 +527,116 @@ WHERE D.DEPT_TITLE LIKE '해외영업%';
 -->> 오라클 전용 구문
 SELECT  E.EMP_NAME "사원명"
            , E.BONUS "보너스"
-           , E.SALARY+(E.SALARY*E.BONUS) "연봉"
+           , (E.SALARY+(E.SALARY*E.BONUS))*12 "연봉"
            , D.DEPT_TITLE "부서명"
            , L.LOCAL_NAME "근무지역명"
 FROM EMPLOYEE E, DEPARTMENT D, LOCATION L
-WHERE  E.DEPT_CODE=D.DEPT_ID  --연결고리
-AND    D.LOCATION_ID=L.LOCAL_CODE;
-
-
+WHERE  DEPT_CODE=DEPT_ID (+) --연결고리
+AND    LOCATION_ID=LOCAL_CODE (+) --연결고리까지 지어줌
+AND    BONUS IS NOT NULL ; --보너스 받는 조건  
 
 -->> ANSI 구문
+SELECT E.EMP_NAME "사원명"
+           , E.BONUS "보너스"
+           , E.SALARY+(E.SALARY*E.BONUS) "연봉"
+           , D.DEPT_TITLE "부서명"
+           , L.LOCAL_NAME "근무지역명"
+FROM EMPLOYEE E
+LEFT JOIN DEPARTMENT D ON(DEPT_CODE=DEPT_ID)  --연결고리
+LEFT JOIN LOCATION L ON(LOCATION_ID=LOCAL_CODE ) --연결고리
+WHERE BONUS IS NOT NULL ;
+
 -- 6. 부서가 있는 직원들의
 --    사원명, 직급명, 부서명, 근무지역명을 조회하시오
 -->> 오라클 전용 구문
+SELECT E.EMP_NAME "사원명"
+          , J.JOB_NAME "직급명"
+           , D.DEPT_TITLE "부서명"
+           , L.LOCAL_NAME "근무지역명"
+FROM EMPLOYEE E, JOB J, DEPARTMENT D, LOCATION L -- 테이블
+WHERE E.JOB_CODE=J.JOB_CODE 
+  AND  E.DEPT_CODE= D.DEPT_ID (+)
+  AND  D.LOCATION_ID = L.LOCAL_CODE (+)--연결고리 연결지어줌
+  AND  DEPT_CODE IS NOT NULL;  --조건
+  
 -->> ANSI 구문
+
+SELECT E.EMP_NAME "사원명"
+          , J.JOB_NAME "직급명"
+           , D.DEPT_TITLE "부서명"
+           , L.LOCAL_NAME "근무지역명"
+FROM  EMPLOYEE E
+LEFT JOIN JOB J ON (E.JOB_CODE=J.JOB_CODE)  --연결고리 지어줌
+LEFT JOIN DEPARTMENT D ON( E.DEPT_CODE= D.DEPT_ID )
+LEFT JOIN LOCATION L ON ( D.LOCATION_ID = L.LOCAL_CODE  )
+WHERE  DEPT_CODE IS NOT NULL; 
+
 -- 7. '한국' 과 '일본' 에 근무하는 직원들의
 --    사원명, 부서명, 근무지역명, 근무국가명을 조회하시오
 -->> 오라클 전용 구문
+SELECT E.EMP_NAME "사원명"
+           , D.DEPT_TITLE "부서명"
+           , L.LOCAL_NAME "근무지역명"
+           , N.NATIONAL_NAME "근무국가명"
+FROM EMPLOYEE E, DEPARTMENT D, LOCATION L, NATIONAL N 
+WHERE  E.DEPT_CODE=D.DEPT_ID (+) --연결고리 지어줌
+  AND    D.LOCATION_ID = L.LOCAL_CODE 
+  AND   L.NATIONAL_CODE=N.NATIONAL_CODE 
+  AND  N.NATIONAL_NAME IN ('한국', '일본'); --조건 IN은 (OR과 =)
+
 -->> ANSI 구문
+SELECT E.EMP_NAME "사원명"
+           , D.DEPT_TITLE "부서명"
+           , L.LOCAL_NAME "근무지역명"
+           , N.NATIONAL_NAME "근무국가명"
+FROM EMPLOYEE E
+LEFT JOIN DEPARTMENT D ON ( DEPT_CODE=DEPT_ID ) --연결고리 지어줌
+JOIN LOCATION L ON ( LOCATION_ID = LOCAL_CODE  )
+JOIN NATIONAL N USING(NATIONAL_CODE )
+WHERE NATIONAL_NAME IN ('한국', '일본');    --조건
+
+
 -- 8. 보너스를 받지 않는 직원들 중 직급코드가 J4 또는 J7 인 직원들의
 --    사원명, 직급명, 급여를 조회하시오
 -->> 오라클 전용 구문
+SELECT E.EMP_NAME "사원명"
+           , J.JOB_NAME "직급명"
+           , E.SALARY "급여"
+FROM EMPLOYEE E, JOB J
+WHERE  E.JOB_CODE= J.JOB_CODE --연결고리
+  AND  E.BONUS IS NULL    --조건
+  AND E.JOB_CODE IN ('J4', 'J7');
+
 -->> ANSI 구문
+SELECT E.EMP_NAME "사원명"
+           , J.JOB_NAME "직급명"
+           , E.SALARY "급여"
+FROM EMPLOYEE E
+JOIN JOB J USING (JOB_CODE)
+WHERE BONUS IS NULL 
+AND  JOB_CODE IN ('J4', 'J7');
+
 -- 9. 사번, 사원명, 직급명, 급여등급, 구분을 조회하는데
 --    이 때, 구분에 해당하는 값은
 --    급여등급이 S1, S2 인 경우 '고급'
---    급여등급이 S3, S24 인 경우 '중급'
+--    급여등급이 S3, S4 인 경우 '중급'
 --    급여등급이 S5, S6 인 경우 '초급' 으로 조회되게 하시오
 -->> 오라클 전용 구문
+SELECT   E.EMP_ID "사번"
+             ,E.EMP_NAME "사원명"
+            , J.JOB_NAME "직급명"
+            ,E.SAL_LEVEL "급여등급"
+            , 
+
 -->> ANSI 구문
+
+
 -- 10. 각 부서별 총 급여합을 조회하되
 --     이 때, 총 급여합이 1000만원 이상인 부서명, 급여합을 조회하시오
 -->> 오라클 전용 구문
 -->> ANSI 구문
+
+
 -- 11. 각 부서별 평균급여를 조회하여 부서명, 평균급여 (정수처리) 로 조회하시오
 --     단, 부서배치가 안된 사원들의 평균도 같이 나오게끔 하시오
 --> 오라클 전용 구문
