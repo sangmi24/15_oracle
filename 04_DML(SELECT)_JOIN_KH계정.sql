@@ -471,7 +471,8 @@ SELECT  E.EMP_NAME "사원명"
 FROM EMPLOYEE E, DEPARTMENT D, JOB J
 WHERE  E.DEPT_CODE=D.DEPT_ID (+)   --연결고리 --부서명  
 AND     E.JOB_CODE=J.JOB_CODE   --직급코드 
-AND E.EMP_NO LIKE  '7%'  AND SUBSTR(E.EMP_NO,8,1)='2'
+AND E.EMP_NO LIKE  '7%'  
+AND SUBSTR(E.EMP_NO,8,1)  IN ('2','4')
 AND E.EMP_NAME LIKE '전%' ;
 -->> ANSI 구문
 SELECT  E.EMP_NAME "사원명"
@@ -481,7 +482,7 @@ SELECT  E.EMP_NAME "사원명"
 FROM EMPLOYEE E
 LEFT JOIN DEPARTMENT D ON (E.DEPT_CODE=D.DEPT_ID )--연결고리
 LEFT JOIN JOB J ON(E.JOB_CODE=J.JOB_CODE)
-WHERE E.EMP_NO LIKE  '7%'  AND SUBSTR(E.EMP_NO,8,1)='2'
+WHERE E.EMP_NO LIKE  '7%'  AND SUBSTR(E.EMP_NO,8,1) IN ('2','4')
 AND E.EMP_NAME LIKE '전%' ;
 
 -- 3. 이름에 '형'자가 들어있는 직원들의 
@@ -555,9 +556,9 @@ SELECT E.EMP_NAME "사원명"
            , L.LOCAL_NAME "근무지역명"
 FROM EMPLOYEE E, JOB J, DEPARTMENT D, LOCATION L -- 테이블
 WHERE E.JOB_CODE=J.JOB_CODE 
-  AND  E.DEPT_CODE= D.DEPT_ID (+)
-  AND  D.LOCATION_ID = L.LOCAL_CODE (+)--연결고리 연결지어줌
-  AND  DEPT_CODE IS NOT NULL;  --조건
+  AND  E.DEPT_CODE= D.DEPT_ID 
+  AND  D.LOCATION_ID = L.LOCAL_CODE ; --연결고리 연결지어줌
+ -- AND  DEPT_TITLE IS NOT NULL;  --조건
   
 -->> ANSI 구문
 
@@ -566,15 +567,15 @@ SELECT E.EMP_NAME "사원명"
            , D.DEPT_TITLE "부서명"
            , L.LOCAL_NAME "근무지역명"
 FROM  EMPLOYEE E
-LEFT JOIN JOB J ON (E.JOB_CODE=J.JOB_CODE)  --연결고리 지어줌
-LEFT JOIN DEPARTMENT D ON( E.DEPT_CODE= D.DEPT_ID )
-LEFT JOIN LOCATION L ON ( D.LOCATION_ID = L.LOCAL_CODE  )
-WHERE  DEPT_CODE IS NOT NULL; 
+ JOIN JOB J ON (E.JOB_CODE=J.JOB_CODE)  --연결고리 지어줌
+ JOIN DEPARTMENT D ON( E.DEPT_CODE= D.DEPT_ID )
+ JOIN LOCATION L ON ( D.LOCATION_ID = L.LOCAL_CODE  );
+--WHERE  DEPT_TITLE IS NOT NULL; 
 
 -- 7. '한국' 과 '일본' 에 근무하는 직원들의
 --    사원명, 부서명, 근무지역명, 근무국가명을 조회하시오
 -->> 오라클 전용 구문
-SELECT E.EMP_NAME "사원명"
+SELECT  E.EMP_NAME "사원명"
            , D.DEPT_TITLE "부서명"
            , L.LOCAL_NAME "근무지역명"
            , N.NATIONAL_NAME "근무국가명"
@@ -625,21 +626,54 @@ AND  JOB_CODE IN ('J4', 'J7');
 SELECT   E.EMP_ID "사번"
              ,E.EMP_NAME "사원명"
             , J.JOB_NAME "직급명"
-            ,E.SAL_LEVEL "급여등급"
-            , 
+            ,DECODE(SAL_LEVEL ,'S1','고급','S2', '고급'  ,
+                          'S3',' 중급','S4', '중급' ,'S5','초급','S6' ,'초급') "급여등급"
+FROM EMPLOYEE E, JOB J
+WHERE  E.JOB_CODE = J.JOB_CODE;  --연결고리
+--AND   E.SAL_LEVEL = S.SAL_LEVEL
+--AND  E.SALARY BETWEEN S.MIN_SAL AND S.MAX_SAL ; 
 
 -->> ANSI 구문
-
+SELECT  E.EMP_ID "사번"
+             ,E.EMP_NAME "사원명"
+            , J.JOB_NAME "직급명"
+            ,DECODE(SAL_LEVEL ,'S1','고급','S2', '고급'  ,
+                          'S3',' 중급','S4', '중급' ,'S5','초급','S6' ,'초급') "급여등급"
+FROM EMPLOYEE E
+JOIN JOB J ON (E.JOB_CODE = J.JOB_CODE );
+--JOIN SAL_GRADE S ON(E.SAL_LEVEL = S.SAL_LEVEL)
+--WHERE E.SALARY BETWEEN S.MIN_SAL AND S.MAX_SAL ;  
+--왜 틀린거지?? USING 안쓰고 ON을 쓰니 해결됨
 
 -- 10. 각 부서별 총 급여합을 조회하되
 --     이 때, 총 급여합이 1000만원 이상인 부서명, 급여합을 조회하시오
 -->> 오라클 전용 구문
--->> ANSI 구문
+SELECT NVL(DEPT_TITLE,'없음') , SUM(SALARY)
+FROM EMPLOYEE   , DEPARTMENT  
+WHERE DEPT_CODE= DEPT_ID (+)
+GROUP BY DEPT_TITLE
+HAVING SUM(SALARY) >= 10000000;
+-- GROUP BY에 DEPT_CODE로 해서 왜 오류났나 몰랐는데 DEPT_TITLE로 하니까 해결됨
 
+-->> ANSI 구문
+SELECT NVL(DEPT_TITLE,'배치되지 않음'), SUM(SALARY)
+FROM EMPLOYEE
+LEFT JOIN DEPARTMENT ON (DEPT_CODE= DEPT_ID) --연결고리
+GROUP BY DEPT_TITLE
+HAVING SUM(SALARY) >= 10000000;
 
 -- 11. 각 부서별 평균급여를 조회하여 부서명, 평균급여 (정수처리) 로 조회하시오
 --     단, 부서배치가 안된 사원들의 평균도 같이 나오게끔 하시오
 --> 오라클 전용 구문
--->> ANSI 구문
+SELECT D.DEPT_TITLE, FLOOR(AVG(E.SALARY))
+FROM EMPLOYEE  E, DEPARTMENT D
+WHERE E.DEPT_CODE=D.DEPT_ID 
+GROUP BY D.DEPT_TITLE ;
+--HAVING 구문으로 썼는데 오류남 . =>WHERE절로 바꿈
 
+-->> ANSI 구문
+SELECT D.DEPT_TITLE, ROUND(AVG(E.SALARY))
+FROM EMPLOYEE  E
+JOIN DEPARTMENT D ON(E.DEPT_CODE=D.DEPT_ID )
+GROUP BY D.DEPT_TITLE ;
 
