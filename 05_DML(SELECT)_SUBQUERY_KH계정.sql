@@ -490,13 +490,118 @@ WHERE  (DEPT_CODE,  SALARY ) IN (SELECT DEPT_CODE, MAX(SALARY)
        서브쿼리를 수행한 결과 (ResultSet) 을 테이블 대신에 사용함
 */
 
+-- 보너스 포함 연봉이 3000만원 이상인 사원들의 사번, 이름, 보너스를 포함한 연봉, 부서코드를 조회
+--1) 인라인뷰를 안 쓴 버전 (테이블로부터 조회하겠다) 
+SELECT EMP_ID "사번", EMP_NAME "이름", (SALARY +(SALARY*NVL(BONUS,0)))*12 "보너스 포함 연봉", DEPT_CODE "부서코드"
+FROM EMPLOYEE
+WHERE  (SALARY +(SALARY*NVL(BONUS,0)))*12 >= 30000000;
 
+--2) 인라인뷰를 쓴 버전 ( 리절트셋으로부터 조회하겠다.)
+SELECT "사번" , "이름", "보너스 포함 연봉", "부서코드"
+FROM (SELECT EMP_ID "사번", EMP_NAME "이름", (SALARY +(SALARY*NVL(BONUS,0)))*12 "보너스 포함 연봉", DEPT_CODE "부서코드"
+           FROM EMPLOYEE )
+WHERE  "보너스 포함 연봉" >= 30000000;
 
+-->> 인라인뷰를 주로 사용하는 예
+-- TOP-N 분석 : 데이터베이스 상의 있는 자료 중 최상위 몇 개의 자료를 보기 위해 사용하는 분석 기법
 
+-- 전 직원 중 급여가 가장 높은 상위 5명의 이름, 급여를 조회
+-- * ROWNUM : 오라클에서 제공하는 컬럼,  조회된 순서대로 1부터 순번을 부여해주는 컬럼 
+SELECT ROWNUM, EMP_NAME, SALARY   --3      
+FROM EMPLOYEE                                   -- 1
+WHERE  ROWNUM <= 5                        -- 2
+--5등 안에 든다==번호표숫자가 5이하다.  
+ORDER BY SALARY DESC;                        --4
+--> 순서가 예상과 다르게 뒤죽박죽 나온다. 
 
+-- 문제원인 : TOP-N  분석을 하려면 일단 정렬을 하고 그 다음에 번호표를 부여해줘야 하는데 SELECT문의 실행 순서 상 그 순서가 바뀌어 있기 때문
+-- 해결방법 : 정렬이 먼저 일어나게끔 쿼리문을 수정
 
+SELECT ROWNUM "순위" ,EMP_NAME "이름" , SALARY "급여"  --SELECT절 4
+FROM ( SELECT *                                --서브쿼리 부분  1 / 서브쿼리를 포함한 FROM절 2
+           FROM EMPLOYEE
+           ORDER BY SALARY DESC)         -- 상대적으로 ORDER BY절이 SELECT절보다 먼저 실행되게끔 해주는 효과
+WHERE ROWNUM <=5;                      -- WHERE절 3
 
+-- FROM 절의 인라인뷰에 별칭 또한 부여 가능함
+--이 때, 메인 쿼리의 SELECT 절에 별칭.*  을 작성하면 해당 인라인뷰의 모든 컬럼을 가져올 수 있다. 
+SELECT ROWNUM, E.*
+ FROM (SELECT *
+           FROM EMPLOYEE
+           ORDER BY SALARY DESC ) E
+WHERE ROWNUM <= 5;
 
+--FROM 절의 인라인뷰에 그룹함수식이 포함된다면 항상 별칭을 붙여줘야 한다. 
+-- 각 부서멸 평균 급여가 높은 3개의 부서의 부서코드, 평균 급여 조회
+SELECT ROWNUM, DEPT_CODE, "평균 급여"
+FROM( SELECT DEPT_CODE, AVG (SALARY) "평균 급여"  -- 그룹함수 이용시 별칭을 꼭 붙이자!
+           FROM EMPLOYEE
+           GROUP BY DEPT_CODE 
+           ORDER BY AVG(SALARY) DESC )
+WHERE ROWNUM <= 3;
 
+-- 가장 최근에 입사한 사원 5명 조회 (사원명, 급여, 입사일)
+SELECT ROWNUM "순번", E.*
+FROM(   SELECT EMP_NAME "사원명", SALARY "급여", HIRE_DATE "입사일"
+             FROM EMPLOYEE
+             ORDER BY HIRE_DATE DESC ) E
+WHERE ROWNUM <=5;             
+
+-- TOP-N 분석 주의사항 : 항상 정렬 ( ORDER BY ) 후에 순번매기기 (ROWNUM)를 해야함!
+--  ORDER BY 절은 항상 실행순서가 마지막이라
+--  먼저 실행시킬려면 인라인뷰에 작성해줘야 한다라는 것
+
+------------------------------------------------------------------------------------------
+
+/*
+     6.  순위 매기는 함수
+     RANK( )  OVER (정렬기준) 
+     DENSE_RANK( ) OVER (정렬기준)
+     
+     - RANK( ) OVER (정렬기준) : 공동 1위가 3명이라고 한다면 그 다음 순위를 4위로 하겠다. (공동 N위가 M명이면 다음순위는 N+M위)
+     - DENSE_RANK( ) OVER(정렬기준) :  공동1 위가 3명이라고 한다면 그 다음 순위는 무조건 2위로 하겠다. (공동 N위가 M명이어도 다음순위는 N+1)
+     
+     주의사항 : SELECT절에만 작성가능 
+*/
+
+-- 사원들의 급여가 높은 순서대로 매겨서 사원명, 급여, 순위 조회
+-- 순위매기는 함수 안쓴 버전
+SELECT EMP_NAME, SALARY, ROWNUM "순위"
+FROM ( SELECT EMP_NAME, SALARY
+            FROM EMPLOYEE
+            ORDER BY SALARY DESC );
+
+-- 순위매기는 함수를 사용한 버전
+--1) RANK( ) OVER (정렬기준) 함수 사용
+SELECT EMP_NAME, SALARY, RANK() OVER( ORDER BY SALARY DESC )"순위"
+FROM EMPLOYEE;
+--> 공동 19위 2명, 그 뒤의 순위는 21위
+
+--2) DENSE_RANK() OVER(정렬기준) 함수 사용
+SELECT EMP_NAME, SALARY, DENSE_RANK() OVER(ORDER BY SALARY DESC) "순위"
+FROM EMPLOYEE;
+
+--> 공동 19위가 2명, 그 뒤의 순위는  20위
+
+-- 5위까지만 조회하겠다. 
+SELECT EMP_NAME, SALARY, RANK() OVER(ORDER BY SALARY DESC) "순위"
+FROM EMPLOYEE
+WHERE RANK()  OVER(ORDER BY SALARY DESC) <= 5; 
+--> 오류 : 윈도우 함수는 WHERE절에 작성 불가
+
+-- 인라인뷰에서는 가능
+SELECT  *
+FROM (SELECT EMP_NAME, SALARY, RANK() OVER(ORDER BY SALARY DESC) "순위"
+          FROM EMPLOYEE)
+WHERE "순위" <= 5 ; 
+
+-- 참고) SELECT문 마지막으로 주의할 점  (* 사용시)
+SELECT EMP_ID, EMP_NAME, *
+FROM EMPLOYEE; --오류
+
+SELECT  ROWNUM, E.*
+FROM (SELECT EMP_NAME, SALARY, RANK() OVER(ORDER BY SALARY DESC) "순위"
+          FROM EMPLOYEE) E
+WHERE "순위" <= 5 ; 
 
                                 
