@@ -61,7 +61,6 @@ CREATE TABLE EMP_01 (
     EMP_ID NUMBER,
     EMP_NAME VARCHAR2(30),
     DEPT_TITLE VARCHAR2(20)
-
 );
 
 -- 전체 사원들의 사번, 이름, 부서명을 조회한 결과를 EMP_01 테이블에 통째로 추가
@@ -110,6 +109,7 @@ WHERE SALARY >= 3000000;
      1 ) INSERT ALL
           INTO 테이블명1 VALUES (컬럼명, 컬럼명, 컬럼명,...)
           INTO 테이블명2 VALUES (컬럼명, 컬럼명, 컬럼명,...)
+          ....
            (서브쿼리);
 */
 --EMP_JOB 테이블에는 급여가  300만원 이상인 사원들의 EMP_ID, EMP_NAME, JOB_NAME 을 삽입
@@ -306,6 +306,48 @@ WHERE EMP_NAME IN ('김말똥','박말순');
 
 COMMIT; --23명의 사원으로 확정 
 
+-- DEPARTMENT 테이블로부터 DEPT_ID 가 D1인 부서 삭제
+DELETE FROM DEPARTMENT
+WHERE DEPT_ID ='D1';
+--integrity constraint (KH.SYS_C007170) violated - child record found
+-- 삭제 안됨 : EMPLOYEE 테이블에서 D1을 가져다 쓰는 자식데이터가 있기 때문에
+
+SELECT * FROM EMPLOYEE;
+
+-- DEPARTMENT 테이블로부터 DEPT_ID 가 D3인 부서 삭제
+DELETE FROM DEPARTMENT
+WHERE DEPT_ID ='D3';
+-- 삭제 됨 : D3을 가져다 쓰는 자식데이터가 없기 때문에
+
+SELECT * FROM DEPARTMENT;
+
+-- DEPARTMENT 테이블 DELETE 전으로 복구
+ROLLBACK;
+
+-----------------------------------------------------------------------------------------------------------------------------
+
+/*
+    *  TRUNCATE  : 테이블의 전체 행을 삭제할 때 사용하는 구문 (절삭)
+                           DELETE FROM  테이블명;  과 같은 역할
+                           단, DELETE 보다 수행속도가 더 빠름
+                           별도의 조건 제시 불가, ROLLBACK 이 불가함!!
+                           
+        [ 표현법 ]
+        TRUNCATE TABLE 테이블명;              |      DELETE FROM 테이블명;
+   -------------------------------------------------------------------------------------------
+      별도의 조건제시 불가                         |         특정 조건제시가 가능  
+      수행속도가 더 빠름                            |         수행속도가 좀 느림
+      ROLLBACK 이 불가                             |        ROLLBACK 가능
+                           
+*/
+
+SELECT * FROM EMP_SALARY;
+
+DELETE FROM EMP_SALARY; --25개 행 이(가) 삭제되었습니다.
+
+ROLLBACK;
+
+TRUNCATE TABLE EMP_SALARY;  --Table EMP_SALARY이(가) 잘렸습니다.
 
 
 
